@@ -1,7 +1,7 @@
 {
   "name": "discoverable-notes",
   "title": "Discoverable Notes - test",
-  "description": "A simple module that allows notes to exist on the map with no permisions, and get added to the journal when players click them.",
+  "description": "A simple module that allows notes to exist on the map with no permissions, and get added to the journal when players click them.",
   "author": "K-barber",
   "version": "0.1.0",
   "minimumCoreVersion": "0.7.8",
@@ -9,6 +9,7 @@
       "./scripts/settings.js",
       "./scripts/main.js"
   ],
+  "compatibleCoreVersion": "0.7.9",
   "url": "https://github.com/k-barber/Foundry-VTT/tree/main/DiscoverableNotes/discoverable-notes",
   "manifest": "https://raw.githubusercontent.com/k-barber/Foundry-VTT/main/DiscoverableNotes/discoverable-notes/module.json",
   "download": "https://github.com/k-barber/Foundry-VTT/raw/main/DiscoverableNotes/discoverable-notes.zip"

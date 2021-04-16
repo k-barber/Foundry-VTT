@@ -1,19 +1,5 @@
 let original_method = Note.prototype._onClickLeft2;
 
-Hooks.on("closeSettingsConfig", () => {
-    Note.prototype.refresh = function () {
-        this.position.set(this.data.x, this.data.y);
-        this.controlIcon.border.visible = this._hover;
-        this.tooltip.visible = this._hover;
-        this.visible = this.entry ? this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission")) : true;
-        return this;
-    }
-
-    Note.prototype._canView = function (user) {
-        return this.entry ? this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission")) : false
-    }
-});
-
 Hooks.on("renderNoteConfig", function (app, html, data) {
     var content = `<div class="form-group" style="justify-content: center;">Discoverable Notes Settings</div>
     <div class="form-group">
@@ -100,30 +86,28 @@ Hooks.once('init', () => {
         this.tooltip.visible = this._hover;
         this.visible = this.entry ? this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission")) : true;
         return this;
-    }
+    };
 
     Note.prototype._canView = function (user) {
         return this.entry ? this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission")) : false
     }
 
-    if (game.settings.get("discoverable-notes", "InteractionDistance") > 0) {
-        Note.prototype._onClickLeft2 = function (event) {
-            if (!game.user.isGM) {
-                let character = getFirstPlayerToken();
-                if (!character) {
-                    ui.notifications.warn("No character selected.");
-                    return;
-                }
-                let dist = getDistance(this, getTokenCenter(character));
-                let gridSize = canvas.dimensions.size;
-                if ((dist / gridSize) > game.settings.get("discoverable-notes", "InteractionDistance")) {
-                    var tokenName = getCharacterName(character);
-                    if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
-                    else ui.notifications.warn("Note not in reach");
-                    return;
-                }
+    Note.prototype._onClickLeft2 = function (event) {
+        if (!game.user.isGM && game.settings.get("discoverable-notes", "InteractionDistance") > 0) {
+            let character = getFirstPlayerToken();
+            if (!character) {
+                ui.notifications.warn("No character selected.");
+                return;
             }
-            original_method.apply(this, null);
-        };
-    }
+            let dist = getDistance(this, getTokenCenter(character));
+            let gridSize = canvas.dimensions.size;
+            if ((dist / gridSize) > game.settings.get("discoverable-notes", "InteractionDistance")) {
+                var tokenName = getCharacterName(character);
+                if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
+                else ui.notifications.warn("Note not in reach");
+                return;
+            }
+        }
+        original_method.apply(this, null);
+    };
 });

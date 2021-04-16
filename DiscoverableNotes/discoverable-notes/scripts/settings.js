@@ -1,4 +1,3 @@
-
 Hooks.once("init", () => {
     game.settings.register("discoverable-notes", "InteractionDistance", {
         name: "Interaction Distance Limit",
@@ -11,7 +10,7 @@ Hooks.once("init", () => {
             min: 0,
             max: 50,
             step: 0.5
-        }
+        },
     });
 
     game.settings.register("discoverable-notes", "PartyPickup", {
@@ -35,6 +34,13 @@ Hooks.once("init", () => {
             "LIMITED": "limited",
             "OBSERVER": "observer",
             "OWNER": "owner"
+        },
+        onChange: function () {
+            if (canvas.notes._active) {
+                canvas.notes.activate();
+            } else {
+                canvas.notes.deactivate();
+            }
         }
     });
 

@@ -37,4 +37,19 @@ Hooks.once("init", () => {
             "OWNER": "owner"
         }
     });
+
+    game.settings.register("discoverable-notes", "UpdatedPermission", {
+        name: "Updated Permission",
+        hint: 'The permission that player(s) are given once they pick up the note. Setting this to "none" will only allow players to see the journal contents when interacting with a note on the map.',
+        scope: "world",
+        config: true,
+        default: "OBSERVER",
+        type: String,
+        choices: {
+            "NONE": "none",
+            "LIMITED": "limited",
+            "OBSERVER": "observer",
+            "OWNER": "owner"
+        }
+    });
 });

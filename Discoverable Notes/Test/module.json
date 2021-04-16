@@ -9,7 +9,7 @@
       "./scripts/settings.js",
       "./scripts/main.js"
   ],
-  "url": "https://github.com/k-barber/Foundry-VTT/tree/main/Discoverable%20Notes/discoverable-notes",
-  "manifest": "https://github.com/k-barber/Foundry-VTT/blob/main/Discoverable%20Notes/discoverable-notes/module.json",
-  "download": "https://github.com/k-barber/Foundry-VTT/blob/main/Discoverable%20Notes/discoverable-notes.zip"
+  "url": "https://github.com/k-barber/Foundry-VTT/tree/main/Discoverable%20Notes/Discoverable-Notes",
+  "manifest": "https://github.com/k-barber/Foundry-VTT/blob/main/Discoverable%20Notes/Discoverable-Notes/module.json",
+  "download": "https://github.com/k-barber/Foundry-VTT/blob/main/Discoverable%20Notes/Discoverable-Notes.zip"
 }

@@ -1,6 +1,6 @@
 {
   "name": "discoverable-notes",
-  "title": "Discoverable Notes - test",
+  "title": "Discoverable Notes",
   "description": "A simple module that allows notes to exist on the map with no permissions, and get added to the journal when players click them.",
   "author": "K-barber",
   "version": "0.1.2",

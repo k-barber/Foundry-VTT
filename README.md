@@ -1,2 +1,2 @@
-# Discoverable-Notes
-A Foundry VTT module that makes notes discoverable
+# A Collection of my Foundry Modules
+

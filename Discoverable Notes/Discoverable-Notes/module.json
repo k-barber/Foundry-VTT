@@ -1,0 +1,12 @@
+{
+  "name": "Discoverable Notes",
+  "title": "Discoverable Notes - Letting players read the journal in the attic, the notes on the desk, and the writing on the wall!",
+  "description": "A simple module that allows notes to exist on the map with no permisions, and get added to the journal when players click them.",
+  "author": "K-barber",
+  "version": "0.1.0",
+  "minimumCoreVersion": "7.9.0",
+  "scripts": [
+      "./scripts/settings.js",
+      "./scripts/main.js"
+  ]
+}

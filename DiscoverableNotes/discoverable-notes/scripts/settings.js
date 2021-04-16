@@ -1,3 +1,4 @@
+/*
 Hooks.once("init", () => {
     game.settings.register("Discoverable-Notes", "InteractionDistance", {
         name: "Interaction Distance Limit",
@@ -51,3 +52,4 @@ Hooks.once("init", () => {
         }
     });
 });
+*/

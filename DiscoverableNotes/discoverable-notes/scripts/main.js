@@ -1,17 +1,20 @@
 Hooks.once('init', () => {
 
-    if( game.settings.get("Discoverable-Notes", "MinimumInteractionPermissions") < 2 ) {
-        let originalRefresh = Note.prototype.refresh;
+    let originalRefresh = Note.prototype.refresh;
         Note.prototype.refresh = function(){
-            this.position.set(this.data.x, this.data.y);
-            this.controlIcon.border.visible = this._hover;
-            this.tooltip.visible = this._hover;
-            this.visible = this.entry ? this.entry.hasPerm(game.user, game.settings.get("Discoverable-Notes", "MinimumInteractionPermissions")) : true;
-            return this;
-        }
+        this.position.set(this.data.x, this.data.y);
+        this.controlIcon.border.visible = this._hover;
+        this.tooltip.visible = this._hover;
+        this.visible = this.entry ? this.entry.hasPerm(game.user, 0) : true;
+        return this;
+    }
+    
+    /*
+    if( game.settings.get("Discoverable-Notes", "MinimumInteractionPermissions") < 2 ) {
+        
     }
 
-    /*
+
     if( game.settings.get("Discoverable-Notes", "InteractionDistance") > 0 ) {
         
       let originalMethod = DoorControl.prototype._onMouseDown;

@@ -14,7 +14,7 @@ Hooks.once("init", () => {
     });
 
     game.settings.register("discoverable-notes", "PartyPickup", {
-        name: "Pickup Notes for Whole Party",
+        name: "Pickup notes for all players",
         hint: "Whether a picked up note is added to the journal for all players.",
         scope: "world",
         config: true,
@@ -46,7 +46,7 @@ Hooks.once("init", () => {
 
     game.settings.register("discoverable-notes", "UpdatedPermission", {
         name: "Updated Permission",
-        hint: 'The permission that player(s) are given once they pick up the note. Setting this to "none" will only allow players to see the journal contents when interacting with a note on the map.',
+        hint: 'The permission that player(s) are given once they pick up the note. Setting this to "none" will allow players to see the journal contents only when interacting with a note on the map.',
         scope: "world",
         config: true,
         default: "OBSERVER",

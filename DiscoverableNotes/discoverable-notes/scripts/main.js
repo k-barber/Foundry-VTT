@@ -1,22 +1,34 @@
 let original_method = Note.prototype._onClickLeft2;
 
+Hooks.on("closeNoteConfig", function(Note, form){
+    var config = {
+        interactionDistance: Note.object.data.DN_interactionDistance,
+        partyPickup: Note.object.data.DN_partyPickup,
+        pickupPermission: Note.object.data.DN_pickupPermission,
+        updatedPermission: Note.object.data.DN_updatedPermission
+    }
+    console.log(config);
+    Note.object.setFlag("discoverable-notes", "config", config);
+});
+
 Hooks.on("renderNoteConfig", function (app, html, data) {
     var content = `<div class="form-group" style="justify-content: center;">Discoverable Notes Settings</div>
     <div class="form-group">
         <label>Interaction Distance</label>
         <div class="form-fields">
-            <input type="text" data-dtype="Number" name="interactionDistance" value="2">
+            <input type="text" data-dtype="Number" name="DN_interactionDistance" value="2">
         </div>
     </div>
     <div class="form-group">
         <label>Party Pickup</label>
         <div class="form-fields">
+            <input type="checkbox" name="DN_partyPickup" data-dtype="Boolean">
         </div>
     </div>
     <div class="form-group">
         <label>Pickup Permission</label>
         <div class="form-fields">
-            <select data-dtype="String" name="pickupPermission">
+            <select data-dtype="String" name="DN_pickupPermission">
                 <option value="NONE">None</option>
                 <option value="LIMITED">Limited</option>
                 <option value="OBSERVER">Observer</option>
@@ -27,7 +39,7 @@ Hooks.on("renderNoteConfig", function (app, html, data) {
     <div class="form-group">
         <label>Updated Permission</label>
         <div class="form-fields">
-            <select name="updatedPermission" data-dtype="String">
+            <select name="DN_updatedPermission" data-dtype="String">
                 <option value="NONE">None</option>
                 <option value="LIMITED">Limited</option>
                 <option value="OBSERVER">Observer</option>

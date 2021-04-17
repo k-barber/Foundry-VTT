@@ -80,14 +80,18 @@ Hooks.on("renderNoteConfig", function (data, html) {
         input("DN_overwriteDefaults").checked = config.overwrite;
         input("DN_interactionDistance").prop("value", config.interactionDistance);
         input("DN_partyPickup").checked = config.partyPickup;
-        input("DN_pickupPermission").find(`option[value="${config.pickupPermission}"]`).prop("selected", true);
-        input("DN_updatedPermission").find(`option[value="${config.updatedPermission}"]`).prop("selected", true);
+        var item =  $("select[name='DN_pickupPermission'] option[value='" + config.pickupPermission + "']")[0];
+        item.setAttribute("selected", true);
+        item = $("select[name='DN_updatedPermission'] option[value='" + config.updatedPermission + "']")[0];
+        item.setAttribute("selected", true);
     } else {
         input("DN_overwriteDefaults").prop("checked", false);
         input("DN_interactionDistance").prop("value", game.settings.get("discoverable-notes", "InteractionDistance"));
         input("DN_partyPickup").prop("checked", game.settings.get("discoverable-notes", "PartyPickup"));
-        input("DN_pickupPermission").find(`option[value="${game.settings.get("discoverable-notes", "PickupPermission")}"]`).prop("selected", true);
-        input("DN_updatedPermission").find(`option[value="${game.settings.get("discoverable-notes", "UpdatedPermission")}"]`).prop("selected", true);
+        var item =  $("select[name='DN_pickupPermission'] option[value='" + game.settings.get("discoverable-notes", "PickupPermission") + "']")[0];
+        item.setAttribute("selected", true);
+        item = $("select[name='DN_updatedPermission'] option[value='" + game.settings.get("discoverable-notes", "UpdatedPermission") + "']")[0];
+        item.setAttribute("selected", true);
     }
     var elements = document.getElementsByClassName("DN_inputs");
     var box = document.getElementById("DN_overwrite");

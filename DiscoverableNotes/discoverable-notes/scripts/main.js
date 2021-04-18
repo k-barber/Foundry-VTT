@@ -78,23 +78,23 @@ Hooks.on("renderNoteConfig", function (data, html) {
     </div>`
     html.find(".form-group").last().after(content);
     var note = data.object;
-    var input = (name) => html.find(`input[name="${name}"]`);
+    var input = (name) => $(`input[name="${name}"]`)[0];
     var config;
     if (hasProperty((note.data), "flags.discoverable-notes") &&
         (config = note.getFlag('discoverable-notes', 'config')) &&
         config.overwriteDefaults == true) {
         // Has edited properties
-        input("DN_overwriteDefaults").checked = config.overwrite;
-        input("DN_interactionDistance").prop("value", config.interactionDistance);
+        input("DN_overwriteDefaults").checked = config.overwriteDefaults;
+        input("DN_interactionDistance").setAttribute("value", config.interactionDistance);
         input("DN_partyPickup").checked = config.partyPickup;
         var item = $("select[name='DN_pickupPermission'] option[value='" + config.pickupPermission + "']")[0];
         item.setAttribute("selected", true);
         item = $("select[name='DN_updatedPermission'] option[value='" + config.updatedPermission + "']")[0];
         item.setAttribute("selected", true);
     } else {
-        input("DN_overwriteDefaults").prop("checked", false);
-        input("DN_interactionDistance").prop("value", game.settings.get("discoverable-notes", "InteractionDistance"));
-        input("DN_partyPickup").prop("checked", game.settings.get("discoverable-notes", "PartyPickup"));
+        input("DN_overwriteDefaults").checked = false;
+        input("DN_interactionDistance").setAttribute("value", game.settings.get("discoverable-notes", "InteractionDistance"));
+        input("DN_partyPickup").checked = game.settings.get("discoverable-notes", "PartyPickup");
         var item = $("select[name='DN_pickupPermission'] option[value='" + game.settings.get("discoverable-notes", "PickupPermission") + "']")[0];
         item.setAttribute("selected", true);
         item = $("select[name='DN_updatedPermission'] option[value='" + game.settings.get("discoverable-notes", "UpdatedPermission") + "']")[0];
@@ -168,7 +168,8 @@ Hooks.once('init', () => {
     game.socket.on("module.discoverable-notes", function(data){
         console.log("Discoverable Notes | Socket Message: ", data);
         if (game.user.isGM && game.userId == data.gmID) {
-            data.entry.update({
+            var entry = JournalDirectory.collection.get(data.entry);
+            entry.update({
                 permission: data.permissions
             });
         }
@@ -262,11 +263,11 @@ Hooks.once('init', () => {
                 }
                 permissions.default = updatedPermission;
                 game.socket.emit("module.discoverable-notes", {
-                    entry: entry,
+                    entry: this.entry.id,
                     permissions: permissions,
                     gmID: gmID
                 });
-            } else if (!partyPickup && permissions[game.userId] < updatedPermission) {
+            } else if (!partyPickup && ((permissions[game.userId] < updatedPermission) || (typeof(permissions[game.userId]) == "undefined"))) {
                 var gmID = getGMId();
                 if (gmID === null) {
                     ui.notifications.warn("No active GM.");
@@ -274,7 +275,7 @@ Hooks.once('init', () => {
                 }
                 permissions[game.userId] = updatedPermission;
                 game.socket.emit("module.discoverable-notes", {
-                    entry: entry,
+                    entry: this.entry.id,
                     permissions: permissions,
                     gmID: gmID
                 });

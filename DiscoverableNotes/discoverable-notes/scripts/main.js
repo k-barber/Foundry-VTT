@@ -1,5 +1,12 @@
-let original_method = function(){
-    if ( this.entry ) this.entry.sheet.render(true);
+let original_method = function () {
+    if (this.entry) this.entry.sheet.render(true);
+}
+
+let permission_ints = {
+    "NONE": 0,
+    "LIMITED": 1,
+    "OBSERVER": 2,
+    "OWNER": 3
 }
 
 Hooks.on("closeNoteConfig", function (Note, form) {
@@ -80,7 +87,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
         input("DN_overwriteDefaults").checked = config.overwrite;
         input("DN_interactionDistance").prop("value", config.interactionDistance);
         input("DN_partyPickup").checked = config.partyPickup;
-        var item =  $("select[name='DN_pickupPermission'] option[value='" + config.pickupPermission + "']")[0];
+        var item = $("select[name='DN_pickupPermission'] option[value='" + config.pickupPermission + "']")[0];
         item.setAttribute("selected", true);
         item = $("select[name='DN_updatedPermission'] option[value='" + config.updatedPermission + "']")[0];
         item.setAttribute("selected", true);
@@ -88,7 +95,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
         input("DN_overwriteDefaults").prop("checked", false);
         input("DN_interactionDistance").prop("value", game.settings.get("discoverable-notes", "InteractionDistance"));
         input("DN_partyPickup").prop("checked", game.settings.get("discoverable-notes", "PartyPickup"));
-        var item =  $("select[name='DN_pickupPermission'] option[value='" + game.settings.get("discoverable-notes", "PickupPermission") + "']")[0];
+        var item = $("select[name='DN_pickupPermission'] option[value='" + game.settings.get("discoverable-notes", "PickupPermission") + "']")[0];
         item.setAttribute("selected", true);
         item = $("select[name='DN_updatedPermission'] option[value='" + game.settings.get("discoverable-notes", "UpdatedPermission") + "']")[0];
         item.setAttribute("selected", true);
@@ -103,6 +110,18 @@ Hooks.on("renderNoteConfig", function (data, html) {
         }
     }
 });
+
+
+function getGMId() {
+    var targetGM = null;
+    game.users.forEach(function(user) {
+        if (user.isGM && user.active) {
+            targetGM = user;
+        }
+    });
+    return targetGM.id;
+}
+
 
 function getDistance(obj1, obj2) {
     return Math.abs(obj1.x - obj2.x) + Math.abs(obj1.y - obj2.y);
@@ -146,6 +165,15 @@ function getTokenCenter(token) {
 }
 
 Hooks.once('init', () => {
+    game.socket.on("module.discoverable-notes", function(data){
+        console.log("Discoverable Notes | Socket Message: ", data);
+        if (game.user.isGM && game.userId == data.gmID) {
+            data.entry.update({
+                permission: data.permissions
+            });
+        }
+    });
+
     Note.prototype.refresh = function () {
         this.position.set(this.data.x, this.data.y);
         this.controlIcon.border.visible = this._hover;
@@ -184,54 +212,72 @@ Hooks.once('init', () => {
         }
     }
 
+    
     Note.prototype._onClickLeft2 = function (event) {
         if (!game.user.isGM) {
             var config;
+            
+            var interactionDistance = 0;
+            var updatedPermission = 2;
+            var partyPickup = true;
+
+            // Set variables
             if (hasProperty((this.data), "flags.discoverable-notes") &&
                 (config = this.getFlag('discoverable-notes', 'config')) &&
                 config.overwriteDefaults == true) {
-                if (config.interactionDistance > 0) {
-                    let character = getFirstPlayerToken();
-                    if (!character) {
-                        ui.notifications.warn("No character selected.");
-                        return;
-                    }
-                    let dist = getDistance(this, getTokenCenter(character));
-                    let gridSize = canvas.dimensions.size;
-                    if ((dist / gridSize) > config.interactionDistance) {
-                        var tokenName = getCharacterName(character);
-                        if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
-                        else ui.notifications.warn("Note not in reach");
-                        return;
-                    }
-                }
-                if (config.partyPickup == true) {
-                    this.entry.data.permission.default // = some value;
-                } else {
-                    this.entry.data.permission //.CHARACTERID =
-                }
+                interactionDistance = config.interactionDistance;
+                updatedPermission = permission_ints[config.updatedPermission];
+                partyPickup = config.partyPickup;
             } else {
-                if (game.settings.get("discoverable-notes", "InteractionDistance") > 0) {
-                    let character = getFirstPlayerToken();
-                    if (!character) {
-                        ui.notifications.warn("No character selected.");
-                        return;
-                    }
-                    let dist = getDistance(this, getTokenCenter(character));
-                    let gridSize = canvas.dimensions.size;
-                    if ((dist / gridSize) > game.settings.get("discoverable-notes", "InteractionDistance")) {
-                        var tokenName = getCharacterName(character);
-                        if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
-                        else ui.notifications.warn("Note not in reach");
-                        return;
-                    }
+                interactionDistance = game.settings.get("discoverable-notes", "InteractionDistance");
+                updatedPermission = permission_ints[game.settings.get("discoverable-notes", "UpdatedPermission")];
+                partyPickup = game.settings.get("discoverable-notes", "PartyPickup");
+            }
 
+            // Check if note is within range of token
+            if (interactionDistance > 0) {
+                let character = getFirstPlayerToken();
+                if (!character) {
+                    ui.notifications.warn("No character selected.");
+                    return;
                 }
-                if (game.settings.get("discoverable-notes", "PartyPickup") == true) {
-                    this.entry.data.permission.default // = some value;
-                } else {
-                    this.entry.data.permission //.CHARACTERID =
+                let dist = getDistance(this, getTokenCenter(character));
+                let gridSize = canvas.dimensions.size;
+                if ((dist / gridSize) > interactionDistance) {
+                    var tokenName = getCharacterName(character);
+                    if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
+                    else ui.notifications.warn("Note not in reach");
+                    return;
                 }
+            }
+            var entry = JournalDirectory.collection.get(this.entry.id);
+            var permissions = duplicate(entry.data.permission);
+
+            //Check if the user/party already have updated permissions
+            if (partyPickup && permissions.default < updatedPermission) {
+                var gmID = getGMId();
+                if (gmID === null) {
+                    ui.notifications.warn("No active GM.");
+                    return
+                }
+                permissions.default = updatedPermission;
+                game.socket.emit("module.discoverable-notes", {
+                    entry: entry,
+                    permissions: permissions,
+                    gmID: gmID
+                });
+            } else if (!partyPickup && permissions[game.userId] < updatedPermission) {
+                var gmID = getGMId();
+                if (gmID === null) {
+                    ui.notifications.warn("No active GM.");
+                    return
+                }
+                permissions[game.userId] = updatedPermission;
+                game.socket.emit("module.discoverable-notes", {
+                    entry: entry,
+                    permissions: permissions,
+                    gmID: gmID
+                });
             }
         }
         original_method.apply(this, null);

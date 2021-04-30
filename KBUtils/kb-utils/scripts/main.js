@@ -68,7 +68,7 @@ Hooks.on("updateActor", async function (ActorData, UpdateData, Diff, UserID) {
 
 var Character_Containers = {};
 
-Hooks.once('init', async function () {
+Hooks.once('renderApplication', async function () {
     var containers_folder = game.folders.find(e => e.data.name === "Character Containers");
     if (!(containers_folder)) {
         await Folder.create({

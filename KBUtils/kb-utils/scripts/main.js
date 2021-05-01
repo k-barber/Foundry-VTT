@@ -5,13 +5,15 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
 
     if (Recipient && Char_Item && other_data && UserID) {
         var user = await game.users.get(UserID);
-        var container = await game.actors.get(Recipient.data._id);
         if ((!(user.isGM)) && Object.keys(Character_Containers).includes(Recipient.data._id)) {
             Char_Item._id;
             var user = await game.users.get(UserID);
             var character = await game.actors.get(user.actorId);
             let item = character.items.find(i => i._id === Char_Item._id);
+
+            var delay = 125;
             if (item) {
+                delay = 0;
                 if (item.data.data.quantity > 1) {
                     await item.update({
                         data: {
@@ -46,30 +48,33 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
                 }
             }
             var existing;
-            if (original) {
-                existing = container.items.find(e => (e.data.name === Char_Item.name) && (e._id !== original._id));
-            } else {
-                existing = container.items.find(e => (e.data.name === Char_Item.name));
-            }
-            if (existing) {
+            var container;
+            setTimeout(async function () {
+                container = await game.actors.get(Recipient.data._id);
                 if (original) {
-                    var updated = container.items.find(e => e._id === original._id);
-                    updated.update({
-                        data: {
-                            quantity: original.data.quantity + 1
-                        }
-                    })
-                    await container.deleteOwnedItem(existing._id);
+                    existing = container.items.find(e => (e.data.name === Char_Item.name) && (e._id !== original._id));
                 } else {
-                    existing.update({
-                        data: {
-                            quantity: 1
-                        }
-                    })
+                    existing = container.items.find(e => (e.data.name === Char_Item.name));
                 }
-            }
+                if (existing) {
+                    if (original) {
+                        var updated = container.items.find(e => e._id === original._id);
+                        updated.update({
+                            data: {
+                                quantity: original.data.quantity + 1
+                            }
+                        })
+                        await container.deleteOwnedItem(existing._id);
+                    } else {
+                        existing.update({
+                            data: {
+                                quantity: 1
+                            }
+                        })
+                    }
+                }
+            }, delay);
         }
-
     }
 
 })

@@ -29,47 +29,43 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
                     content: character.name + " put " + Char_Item.name + " into " + Recipient.data.name
                 });
 
-                var original = null;
-                for (let i = 0; i < original_items.length; i++) {
-                    if (original_items[i].name === Char_Item.name) {
-                        original = original_items[i];
-                        break;
-                    }
-                }
-                var existing;
-                if (original) {
-                    existing = container.items.find(e => (e.data.name === Char_Item.name) && (e._id !== original._id));
-                } else {
-                    existing = container.items.find(e => (e.data.name === Char_Item.name));
-                }
-                if (existing) {
-                    if (original) {
-                        var updated = container.items.find(e => e._id === original._id);
-                        updated.update({
-                            data: {
-                                quantity: original.data.quantity + 1
-                            }
-                        })
-                        await container.deleteOwnedItem(existing._id);
-                    } else {
-                        existing.update({
-                            data: {
-                                quantity: 1
-                            }
-                        })
-                    }
-                }
             } else {
-                ui.notifications.error("Item not in inventory.");
-                var existing = container.items.find(e => e.data.name === Char_Item.name);
-                if (existing.data.data.quantity > 1) {
-                    await existing.update({
+                ChatMessage.create({
+                    speaker: {
+                        actor: Recipient.data._id
+                    },
+                    content: character.name + " put " + Char_Item.name + " into " + Recipient.data.name + " from an unknown source."
+                });
+            }
+
+            var original = null;
+            for (let i = 0; i < original_items.length; i++) {
+                if (original_items[i].name === Char_Item.name) {
+                    original = original_items[i];
+                    break;
+                }
+            }
+            var existing;
+            if (original) {
+                existing = container.items.find(e => (e.data.name === Char_Item.name) && (e._id !== original._id));
+            } else {
+                existing = container.items.find(e => (e.data.name === Char_Item.name));
+            }
+            if (existing) {
+                if (original) {
+                    var updated = container.items.find(e => e._id === original._id);
+                    updated.update({
                         data: {
-                            quantity: existing.data.data.quantity - 1
+                            quantity: original.data.quantity + 1
                         }
-                    });
-                } else {
+                    })
                     await container.deleteOwnedItem(existing._id);
+                } else {
+                    existing.update({
+                        data: {
+                            quantity: 1
+                        }
+                    })
                 }
             }
         }

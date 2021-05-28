@@ -4,6 +4,13 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     FraudswordMessageHandler(message, html, data);
 });
 
+Hooks.on("renderActorSheet", (actor, html, data) => {
+    html.find("h4:contains(Fraudsword)").prev().css({
+        'background-blend-mode': 'luminosity',
+        'background-color': '#d000ff87'
+    })
+});
+
 function FraudswordMessageHandler(message, html, data) {
     if (message.data.speaker?.alias === "Fraudsword") {
         html[0].style.borderColor = "#5a2989";
@@ -17,6 +24,10 @@ function FraudswordMessageHandler(message, html, data) {
         html[0].children[1].children[0].children[0].children[4].style.borderColor = "#9b6ec6";
         html[0].children[1].children[0].children[0].children[4].children[0].style.borderColor = "#9b6ec6";
     }
+    var $image = html.find("h3:contains(Fraudsword)").prev()
+    $image.replaceWith(`<div style="height:36px; width:36px; background-color: #d000ff87; background-image:
+    url('${$image.attr("src")}'); background-size: contain; box-sizing: border-box; border: 1px solid #000;
+    border-radius: 2px; background-blend-mode: luminosity; flex: 0 0 36px; margin-right: 5px;"></div>`);
 }
 
 Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data, UserID) {

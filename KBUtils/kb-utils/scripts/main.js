@@ -1,5 +1,24 @@
 var Character_Containers = {};
 
+Hooks.on("renderChatMessage", (message, html, data) => {
+    FraudswordMessageHandler(message, html, data);
+});
+
+function FraudswordMessageHandler(message, html, data) {
+    if (message.data.speaker?.alias === "Fraudsword") {
+        html[0].style.borderColor = "#5a2989";
+        html[0].style.backgroundBlendMode = "multiply";
+        html[0].style.backgroundColor = "#590d8d2e";
+        html[0].children[0].style.color = "#31174b";
+        html[0].children[1].style.color = "#31174b";
+        html[0].children[1].children[0].children[0].children[0].style.color = "#31174b";
+        html[0].children[1].children[0].children[0].children[0].children[1].style.color = "#31174b";
+        html[0].children[1].children[0].children[0].children[0].style.borderColor = "#9b6ec6";
+        html[0].children[1].children[0].children[0].children[4].style.borderColor = "#9b6ec6";
+        html[0].children[1].children[0].children[0].children[4].children[0].style.borderColor = "#9b6ec6";
+    }
+}
+
 Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data, UserID) {
     var original_items = duplicate(Recipient.data.items);
 

@@ -53,7 +53,7 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
                 } else {
                     await character.deleteOwnedItem(Char_Item._id);
                 }
-
+                console.log("ERROR 1");
                 ChatMessage.create({
                     speaker: {
                         actor: Recipient.data._id
@@ -62,6 +62,7 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
                 });
 
             } else {
+                console.log("ERROR 2");
                 ChatMessage.create({
                     speaker: {
                         actor: Recipient.data._id
@@ -111,31 +112,52 @@ Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data,
 
 Hooks.on("updateActor", async function (ActorData, UpdateData, Diff, UserID) {
 
-    if (ActorData && UpdateData && Diff && UserID) {
+    if (ActorData && UpdateData && Diff && UserID && UserID === game.userId) {
         var user = await game.users.get(UserID);
         if ((!(user.isGM)) && Object.keys(Character_Containers).includes(UpdateData._id)) {
-
+            var container = await game.actors.get(UpdateData._id);
             // NPC currency {gp: {value: 23}, sp: {value : 23}}
             // PC currency {gp: 23, sp: 23}
             let original_container_values = duplicate(Character_Containers[UpdateData._id]);
-            console.log(original_container_values)
+            console.log("Original");
+            console.log(JSON.stringify(original_container_values))
             let new_container_values = UpdateData.data.currency;
-            console.log(new_container_values)
+            console.log("New");
+            console.log(JSON.stringify(new_container_values))
             var differences = {};
-            var increasing = false;
+            var changing = false;
             let denomination = ""
+            var relative = false;
             let keys = Object.keys(new_container_values);
             for (let i = 0; i < keys.length; i++) {
                 denomination = keys[i];
-                if (new_container_values[denomination].value > original_container_values[denomination].value) {
-                    increasing = true;
-                    differences[denomination] = new_container_values[denomination].value - original_container_values[denomination].value;
+                if (typeof (new_container_values[denomination].value) === "string" && (new_container_values[denomination].value.startsWith("+") || new_container_values[denomination].value.startsWith("-"))) {
+                    new_container_values[denomination].value = Number.parseInt(original_container_values[denomination].value) + Number.parseInt(new_container_values[denomination].value)
+                    relative = true;
                 }
-            }
+                if (new_container_values[denomination].value < 0) {
+                    ui.notifications.error("You can't have negative money...");
+                    await container.update({
+                        data: {
+                            currency: original_container_values
+                        }
+                    });
+                    return;
+                }
+                if (new_container_values[denomination].value > original_container_values[denomination].value || new_container_values[denomination].value < original_container_values[denomination].value) {
+                    changing = true;
+                }
 
-            if (increasing) {
+                differences[denomination] = new_container_values[denomination].value - original_container_values[denomination].value;
+            }
+            console.log("Difference");
+            console.log(JSON.stringify(differences));
+            console.log("New");
+            console.log(JSON.stringify(new_container_values));
+
+            if (changing) {
+                console.log("CHANGING!");
                 var character = await game.actors.get(user.actorId);
-                var container = await game.actors.get(UpdateData._id);
                 var original_character_values = duplicate(character.data.data.currency);
                 var new_character_values = {};
                 var enough = true
@@ -143,7 +165,10 @@ Hooks.on("updateActor", async function (ActorData, UpdateData, Diff, UserID) {
                 keys = Object.keys(differences);
                 for (let i = 0; i < keys.length; i++) {
                     denomination = keys[i];
-                    if (differences[denomination] > original_character_values[denomination]) {
+                    if (differences[denomination] > 0 && differences[denomination] > original_character_values[denomination]) {
+                        enough = false;
+                        break;
+                    } else if (differences[denomination] < 0 && Math.abs(differences[denomination]) > original_container_values[denomination]) {
                         enough = false;
                         break;
                     }
@@ -159,7 +184,6 @@ Hooks.on("updateActor", async function (ActorData, UpdateData, Diff, UserID) {
                     });
                     return;
                 }
-
                 await character.update({
                     data: {
                         currency: new_character_values
@@ -170,28 +194,60 @@ Hooks.on("updateActor", async function (ActorData, UpdateData, Diff, UserID) {
                 for (const [denomination, value] of Object.entries(differences)) {
 
 
-                    input += denomination + " x " + value + ",";
+                    input += denomination + " x " + Math.abs(value) + ",";
                 }
                 input.slice(0, -1);
 
-                ChatMessage.create({
-                    speaker: {
-                        actor: character._id
-                    },
-                    content: character.name + " put " + input + " into " + container.name
-                });
+                if (differences[denomination] < 0) {
+                    ChatMessage.create({
+                        speaker: {
+                            alias: container.name
+                        },
+                        content: character.name + " took " + input + " from " + container.name
+                    });
+                } else if (differences[denomination] > 0) {
+                    ChatMessage.create({
+                        speaker: {
+                            alias: container.name
+                        },
+                        content: character.name + " put " + input + " into " + container.name
+                    });
+                }
 
+                if (relative) {
+                    setTimeout(() => {
+                        container.update({
+                            data: {
+                                currency: new_container_values
+                            }
+                        });
+                    }, 250);
+                }
             }
 
             denomination = ""
             keys = Object.keys(new_container_values);
 
+            console.log("Point!")
+            console.log("New Values!");
+            console.log(JSON.stringify(new_container_values));
             for (let i = 0; i < keys.length; i++) {
                 denomination = keys[i];
                 Character_Containers[UpdateData._id][denomination] = duplicate(new_container_values[denomination]);
             }
-            console.log(Character_Containers)
-
+            console.log("New containers!")
+            console.log(JSON.stringify(Character_Containers))
+            console.log("New Values!");
+            console.log(JSON.stringify(new_container_values))
+            return;
+        } else if (user.isGM && Object.keys(Character_Containers).includes(UpdateData._id)) {
+            denomination = ""
+            let new_container_values = UpdateData.data.currency;
+            keys = Object.keys(new_container_values);
+            for (let i = 0; i < keys.length; i++) {
+                denomination = keys[i];
+                Character_Containers[UpdateData._id][denomination] = duplicate(new_container_values[denomination]);
+            }
         }
     }
 

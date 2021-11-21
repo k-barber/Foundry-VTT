@@ -23,19 +23,21 @@ Hooks.on("renderActorSheet", (actor, html, data) => {
 
 function MessageHandler(message, html, data) {
     console.log(message.data)
-    let token = (message.data.speaker?.alias || message.data.speaker?.actor)
-    token = token.replace(/\W/g, "_");
-    html[0].classList.add(token + "_Message");
-    if (message.data.speaker?.alias === "Fraudsword") {
-        var $image = html.find("h3:contains(Fraudsword)").prev()
-        $image.replaceWith(`<div style="height:36px; width:36px; background-color: #d000ff87; background-image:
+    let speaker = (message.data.speaker?.alias || message.data.speaker?.actor || message.user)
+    if (speaker && typeof (speaker) == "string") {
+        speaker = speaker.replace(/\W/g, "_");
+        html[0].classList.add(speaker + "_Message");
+        if (speaker === "Fraudsword") {
+            var $image = html.find("h3:contains(Fraudsword)").prev()
+            $image.replaceWith(`<div style="height:36px; width:36px; background-color: #d000ff87; background-image:
     url('${$image.attr("src")}'); background-size: contain; box-sizing: border-box; border: 1px solid #000;
     border-radius: 2px; background-blend-mode: luminosity; flex: 0 0 36px; margin-right: 5px;"></div>`);
+        }
     }
 }
 
 async function CustomPreUpdateFunction(wrapped, documentClass, things, user) {
-    const collection = game.collections.get(documentClass.documentName);
+    const collection = things.pack ? game.packs.get(things.pack) : game.collections.get(documentClass.documentName);
     const toUpdate = await this._preUpdateDocumentArray(collection, things);
 
     var target = game.actors.get(things.updates[0]._id)
@@ -139,97 +141,22 @@ async function CustomPreUpdateFunction(wrapped, documentClass, things, user) {
     return wrapped(documentClass, things, user);
 }
 
-/*
-function CustomPreCreationFunction(wrapped, embeddedName, ...args) {
-    console.log(embeddedName);
-    console.log(args);
-    return wrapped(documentClass, things, user);
+
+async function CustomPreCreationFunction(wrapped, event, data) {
+    await wrapped(event, data)
+
+    const actor = this.actor;
+    let sameActor = (data.actorId === actor.id) || (actor.isToken && (data.tokenId === actor.token.id));
+    if (!(sameActor)) {
+        if (data.actorId) {
+            const source = game.actors.get(data.actorId);
+            source.deleteOwnedItem(data.data._id)
+        }
+    }
 }
-*/
+
 
 Hooks.once('init', () => {
     libWrapper.register("kb-utils", "ClientDatabaseBackend.prototype._updateDocuments", CustomPreUpdateFunction, "MIXED");
-    //libWrapper.register("kb-utils", "Actor.prototype._onCreateEmbeddedDocuments", CustomPreCreationFunction, "MIXED");
+    libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
 })
-
-/*
-Hooks.on("preCreateOwnedItem", async function (Recipient, Char_Item, other_data, UserID) {
-    var original_items = duplicate(Recipient.data.items);
-
-    if (Recipient && Char_Item && other_data && UserID) {
-        var user = await game.users.get(UserID);
-        if ((!(user.isGM)) && Object.keys(Character_Containers).includes(Recipient.data._id)) {
-            Char_Item._id;
-            var user = await game.users.get(UserID);
-            var character = await game.actors.get(user.actorId);
-            let item = character.items.find(i => i._id === Char_Item._id);
-
-            var delay = 125;
-            if (item) {
-                delay = 0;
-                if (item.data.data.quantity > 1) {
-                    await item.update({
-                        data: {
-                            quantity: item.data.data.quantity - 1
-                        }
-                    });
-                } else {
-                    await character.deleteOwnedItem(Char_Item._id);
-                }
-                console.log("ERROR 1");
-                ChatMessage.create({
-                    speaker: {
-                        actor: Recipient.data._id
-                    },
-                    content: character.name + " put " + Char_Item.name + " into " + Recipient.data.name
-                });
-
-            } else {
-                console.log("ERROR 2");
-                ChatMessage.create({
-                    speaker: {
-                        actor: Recipient.data._id
-                    },
-                    content: character.name + " put " + Char_Item.name + " into " + Recipient.data.name + " from an unknown source."
-                });
-            }
-
-            var original = null;
-            for (let i = 0; i < original_items.length; i++) {
-                if (original_items[i].name === Char_Item.name) {
-                    original = original_items[i];
-                    break;
-                }
-            }
-            var existing;
-            var container;
-            setTimeout(async function () {
-                container = await game.actors.get(Recipient.data._id);
-                if (original) {
-                    existing = container.items.find(e => (e.data.name === Char_Item.name) && (e._id !== original._id));
-                } else {
-                    existing = container.items.find(e => (e.data.name === Char_Item.name));
-                }
-                if (existing) {
-                    if (original) {
-                        var updated = container.items.find(e => e._id === original._id);
-                        updated.update({
-                            data: {
-                                quantity: original.data.quantity + 1
-                            }
-                        })
-                        await container.deleteOwnedItem(existing._id);
-                    } else {
-                        existing.update({
-                            data: {
-                                quantity: 1
-                            }
-                        })
-                    }
-                }
-            }, delay);
-        }
-    }
-
-})
-*/

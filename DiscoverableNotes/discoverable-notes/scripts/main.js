@@ -10,12 +10,13 @@ let permission_ints = {
 }
 
 Hooks.on("closeNoteConfig", function (Note, form) {
+    var DN_values = form.find(".DN_inputs");
     var config = {
-        overwriteDefaults: Note.object.data.DN_overwriteDefaults,
-        interactionDistance: Note.object.data.DN_interactionDistance,
-        partyPickup: Note.object.data.DN_partyPickup,
-        pickupPermission: Note.object.data.DN_pickupPermission,
-        updatedPermission: Note.object.data.DN_updatedPermission
+        overwriteDefaults: DN_values[0].checked,
+        interactionDistance: DN_values[1].value,
+        partyPickup: DN_values[2].checked,
+        pickupPermission: DN_values[3].value,
+        updatedPermission: DN_values[4].value
     }
     console.log(config);
     Note.object.setFlag("discoverable-notes", "config", config);
@@ -27,7 +28,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
         function DN_disable_enable() {
             var elements = document.getElementsByClassName("DN_inputs");
             var box = document.getElementById("DN_overwrite");
-            for (var i = 0; i < elements.length; i ++){
+            for (var i = 1; i < elements.length; i ++){
                 if (box.checked){
                     elements[i].disabled = false;
                 } else {
@@ -39,7 +40,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
     <div class="form-group">
         <label>Overwrite Defaults</label>
         <div class="form-fields">
-            <input id="DN_overwrite" type="checkbox" name="DN_overwriteDefaults" data-dtype="Boolean" onChange="DN_disable_enable()">
+            <input id="DN_overwrite" class="DN_inputs" type="checkbox" name="DN_overwriteDefaults" data-dtype="Boolean" onChange="DN_disable_enable()">
         </div>
     </div>
     <div class="form-group">
@@ -102,7 +103,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
     }
     var elements = document.getElementsByClassName("DN_inputs");
     var box = document.getElementById("DN_overwrite");
-    for (var i = 0; i < elements.length; i++) {
+    for (var i = 1; i < elements.length; i++) {
         if (box.checked) {
             elements[i].disabled = false;
         } else {
@@ -114,7 +115,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
 
 function getGMId() {
     var targetGM = null;
-    game.users.forEach(function(user) {
+    game.users.forEach(function (user) {
         if (user.isGM && user.active) {
             targetGM = user;
         }
@@ -164,8 +165,9 @@ function getTokenCenter(token) {
     return tokenCenter;
 }
 
+
 Hooks.once('init', () => {
-    game.socket.on("module.discoverable-notes", function(data){
+    game.socket.on("module.discoverable-notes", function (data) {
         console.log("Discoverable Notes | Socket Message: ", data);
         if (game.user.isGM && game.userId == data.gmID) {
             var entry = JournalDirectory.collection.get(data.entry);
@@ -175,10 +177,11 @@ Hooks.once('init', () => {
         }
     });
 
-    Note.prototype.refresh = function () {
-        this.position.set(this.data.x, this.data.y);
-        this.controlIcon.border.visible = this._hover;
-        this.tooltip.visible = this._hover;
+    libWrapper.register("discoverable-notes", "Note.prototype.refresh", function (wrapped, event) {
+        //this.position.set(this.data.x, this.data.y);
+        //this.controlIcon.border.visible = this._hover;
+        //this.tooltip.visible = this._hover;
+
         if (this.entry) {
             var config;
             if (hasProperty((this.data), "flags.discoverable-notes") &&
@@ -193,10 +196,11 @@ Hooks.once('init', () => {
         } else {
             this.visible = true;
         }
-        return this;
-    };
 
-    Note.prototype._canView = function (user) {
+        return wrapped(event);
+    }, "MIXED");
+
+    libWrapper.register("discoverable-notes", "Note.prototype._canView", function (wrapped, event) {
         if (this.entry) {
             var config;
             if (hasProperty((this.data), "flags.discoverable-notes") &&
@@ -209,15 +213,14 @@ Hooks.once('init', () => {
                 return this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
             }
         } else {
-            return true;
+            return wrapped(event);
         }
-    }
+    }, "MIXED");
 
-    
-    Note.prototype._onClickLeft2 = function (event) {
+    libWrapper.register("discoverable-notes", "Note.prototype._onClickLeft2", function (wrapped, event) {
         if (!game.user.isGM) {
             var config;
-            
+
             var interactionDistance = 0;
             var updatedPermission = 2;
             var partyPickup = true;
@@ -240,7 +243,7 @@ Hooks.once('init', () => {
                 let character = getFirstPlayerToken();
                 if (!character) {
                     ui.notifications.warn("No character selected.");
-                    return;
+                    return false;
                 }
                 let dist = getDistance(this, getTokenCenter(character));
                 let gridSize = canvas.dimensions.size;
@@ -248,7 +251,7 @@ Hooks.once('init', () => {
                     var tokenName = getCharacterName(character);
                     if (tokenName) ui.notifications.warn("Note not within " + tokenName + "'s reach");
                     else ui.notifications.warn("Note not in reach");
-                    return;
+                    return false;
                 }
             }
             var entry = JournalDirectory.collection.get(this.entry.id);
@@ -259,7 +262,7 @@ Hooks.once('init', () => {
                 var gmID = getGMId();
                 if (gmID === null) {
                     ui.notifications.warn("No active GM.");
-                    return
+                    return false;
                 }
                 permissions.default = updatedPermission;
                 game.socket.emit("module.discoverable-notes", {
@@ -267,11 +270,11 @@ Hooks.once('init', () => {
                     permissions: permissions,
                     gmID: gmID
                 });
-            } else if (!partyPickup && ((permissions[game.userId] < updatedPermission) || (typeof(permissions[game.userId]) == "undefined"))) {
+            } else if (!partyPickup && ((permissions[game.userId] < updatedPermission) || (typeof (permissions[game.userId]) == "undefined"))) {
                 var gmID = getGMId();
                 if (gmID === null) {
                     ui.notifications.warn("No active GM.");
-                    return
+                    return false;
                 }
                 permissions[game.userId] = updatedPermission;
                 game.socket.emit("module.discoverable-notes", {
@@ -281,6 +284,6 @@ Hooks.once('init', () => {
                 });
             }
         }
-        original_method.apply(this, null);
-    };
+        return wrapped(event);
+    }, "MIXED");
 });

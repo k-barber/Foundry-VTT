@@ -155,8 +155,35 @@ async function CustomPreCreationFunction(wrapped, event, data) {
     }
 }
 
+function new_url(src) {
+    var new_url = src
+    if (new_url && new_url.includes("https://foundry-vtt-kb.s3.us-east-2.amazonaws.com")) {
+        if (new_url.includes("?")) {
+            new_url += "&kb_utils"
+        } else {
+            new_url += "?kb_utils"
+        }
+    }
+    return new_url
+}
+
+function customImageLoadFunction(wrapped, src) {
+    return wrapped(new_url(src))
+}
+
+function customCacheFunction(wrapped, src) {
+    var val = this.cache.get(new_url(src));
+    if (!val) {
+        val = this.cache.get(src)
+    };
+    if (!val) return undefined;
+    val.time = Date.now();
+    return val?.tex;
+}
 
 Hooks.once('init', () => {
     libWrapper.register("kb-utils", "ClientDatabaseBackend.prototype._updateDocuments", CustomPreUpdateFunction, "MIXED");
     libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
+    libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", customImageLoadFunction, "MIXED")
+    libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED")
 })

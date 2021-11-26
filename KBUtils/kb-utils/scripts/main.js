@@ -5,9 +5,15 @@ function setFlagFunction(data, key, value) {
     object.setFlag("kb-utils", key, value);
 }
 
+function createOwnedItemFunction(target_ID, creation_data) {
+    let target = game.actors.get(target_ID);
+    target.createOwnedItem(creation_data);
+}
+
 Hooks.once("socketlib.ready", () => {
     Utility_Socket = socketlib.registerModule("kb-utils");
     Utility_Socket.register("setFlag", setFlagFunction)
+    Utility_Socket.register("createOwnedItem", createOwnedItemFunction)
 });
 
 Hooks.on("renderChatMessage", (message, html, data) => {
@@ -37,104 +43,106 @@ function MessageHandler(message, html, data) {
 }
 
 async function CustomPreUpdateFunction(wrapped, documentClass, things, user) {
-    const collection = things.pack ? game.packs.get(things.pack) : game.collections.get(documentClass.documentName);
-    const toUpdate = await this._preUpdateDocumentArray(collection, things);
+    if (documentClass.name === "Actor5e") {
+        const collection = things.pack ? game.packs.get(things.pack) : game.collections.get(documentClass.documentName);
+        const toUpdate = await this._preUpdateDocumentArray(collection, things);
 
-    var target = game.actors.get(things.updates[0]._id)
+        var target = game.actors.get(things.updates[0]._id)
 
-    var good_update = true;
-    const updateData = toUpdate[0]?.data;
+        var good_update = true;
+        const updateData = toUpdate[0]?.data;
 
-    if (updateData) {
-        if (!(game.user.isGM) && target.data?.type === "npc" && Object.keys(updateData).includes("currency")) {
-            let original_container_values = duplicate(target.data.data.currency);
+        if (updateData) {
+            if (!(game.user.isGM) && target.data?.type === "npc" && Object.keys(updateData).includes("currency")) {
+                let original_container_values = duplicate(target.data.data.currency);
 
-            function inner() {
-                let new_container_values = updateData.currency;
-                var differences = {};
-                let denomination = ""
-                let keys = Object.keys(new_container_values);
-                for (let i = 0; i < keys.length; i++) {
-                    denomination = keys[i];
-                    if (isNaN(Number.parseInt(new_container_values[denomination].value))) {
-                        ui.notifications.error("THAT'S NOT A NUMBER!!");
+                function inner() {
+                    let new_container_values = updateData.currency;
+                    var differences = {};
+                    let denomination = ""
+                    let keys = Object.keys(new_container_values);
+                    for (let i = 0; i < keys.length; i++) {
+                        denomination = keys[i];
+                        if (isNaN(Number.parseInt(new_container_values[denomination].value))) {
+                            ui.notifications.error("THAT'S NOT A NUMBER!!");
+                            ChatMessage.create({
+                                speaker: {
+                                    alias: "System"
+                                },
+                                content: "<p>" + game.user.charname + " doesn't know what a number is!</p><p>POINT AT THEM AND LAUGH!</p>"
+                            });
+                            return false;
+                        }
+                        if (typeof (new_container_values[denomination].value) === "string" && (new_container_values[denomination].value.startsWith("+") || new_container_values[denomination].value.startsWith("-"))) {
+                            new_container_values[denomination].value = Number.parseInt(original_container_values[denomination].value || 0) + Number.parseInt(new_container_values[denomination].value)
+                        }
+                        if (new_container_values[denomination].value < 0) {
+                            ui.notifications.error("You can't have negative money...");
+                            return false;
+                        }
+                        differences[denomination] = new_container_values[denomination].value - original_container_values[denomination].value;
+                        things.updates[0]["data.currency." + denomination + ".value"] = new_container_values[denomination].value;
+                    }
+
+                    var character = game.user.character;
+                    var original_character_values = duplicate(character.data.data.currency);
+                    var new_character_values = {};
+                    var enough = true;
+
+                    denomination = ""
+                    keys = Object.keys(differences);
+                    for (let i = 0; i < keys.length; i++) {
+                        denomination = keys[i];
+                        if (differences[denomination] > 0 && differences[denomination] > original_character_values[denomination]) {
+                            enough = false;
+                            break;
+                        } else if (differences[denomination] < 0 && Math.abs(differences[denomination]) > original_container_values[denomination]) {
+                            enough = false;
+                            break;
+                        }
+                        new_character_values[denomination] = (original_character_values[denomination] - differences[denomination]);
+                    }
+
+                    if (!(enough)) {
+                        ui.notifications.error("You don't have that much money...");
+                        return false;
+                    }
+                    character.update({
+                        data: {
+                            currency: new_character_values
+                        }
+                    });
+
+                    var input = ""
+                    for (const [denomination, value] of Object.entries(differences)) {
+                        input += denomination + " x " + Math.abs(value) + ",";
+                    }
+                    input.slice(0, -1);
+
+                    if (differences[denomination] < 0) {
                         ChatMessage.create({
                             speaker: {
-                                alias: "System"
+                                alias: target.data.name
                             },
-                            content: "<p>" + game.user.charname + " doesn't know what a number is!</p><p>POINT AT THEM AND LAUGH!</p>"
+                            content: character.name + " took " + input + " from " + target.data.name
                         });
-                        return false;
+                    } else if (differences[denomination] > 0) {
+                        ChatMessage.create({
+                            speaker: {
+                                alias: target.data.name
+                            },
+                            content: character.name + " put " + input + " into " + target.data.name
+                        });
                     }
-                    if (typeof (new_container_values[denomination].value) === "string" && (new_container_values[denomination].value.startsWith("+") || new_container_values[denomination].value.startsWith("-"))) {
-                        new_container_values[denomination].value = Number.parseInt(original_container_values[denomination].value || 0) + Number.parseInt(new_container_values[denomination].value)
+                    return true;
+                }
+                good_update = inner()
+                if (!good_update) {
+                    things.updates[0].data = {
+                        currency: original_container_values
                     }
-                    if (new_container_values[denomination].value < 0) {
-                        ui.notifications.error("You can't have negative money...");
-                        return false;
-                    }
-                    differences[denomination] = new_container_values[denomination].value - original_container_values[denomination].value;
-                    things.updates[0]["data.currency." + denomination + ".value"] = new_container_values[denomination].value;
+                    things.options.diff = false;
                 }
-
-                var character = game.user.character;
-                var original_character_values = duplicate(character.data.data.currency);
-                var new_character_values = {};
-                var enough = true;
-
-                denomination = ""
-                keys = Object.keys(differences);
-                for (let i = 0; i < keys.length; i++) {
-                    denomination = keys[i];
-                    if (differences[denomination] > 0 && differences[denomination] > original_character_values[denomination]) {
-                        enough = false;
-                        break;
-                    } else if (differences[denomination] < 0 && Math.abs(differences[denomination]) > original_container_values[denomination]) {
-                        enough = false;
-                        break;
-                    }
-                    new_character_values[denomination] = (original_character_values[denomination] - differences[denomination]);
-                }
-
-                if (!(enough)) {
-                    ui.notifications.error("You don't have that much money...");
-                    return false;
-                }
-                character.update({
-                    data: {
-                        currency: new_character_values
-                    }
-                });
-
-                var input = ""
-                for (const [denomination, value] of Object.entries(differences)) {
-                    input += denomination + " x " + Math.abs(value) + ",";
-                }
-                input.slice(0, -1);
-
-                if (differences[denomination] < 0) {
-                    ChatMessage.create({
-                        speaker: {
-                            alias: target.data.name
-                        },
-                        content: character.name + " took " + input + " from " + target.data.name
-                    });
-                } else if (differences[denomination] > 0) {
-                    ChatMessage.create({
-                        speaker: {
-                            alias: target.data.name
-                        },
-                        content: character.name + " put " + input + " into " + target.data.name
-                    });
-                }
-                return true;
-            }
-            good_update = inner()
-            if (!good_update) {
-                things.updates[0].data = {
-                    currency: original_container_values
-                }
-                things.options.diff = false;
             }
         }
     }

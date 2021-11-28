@@ -189,9 +189,15 @@ function customCacheFunction(wrapped, src) {
     return val?.tex;
 }
 
+function getVertexFunction(x, y) {
+    const gs = canvas.dimensions.size * 0.5;
+    return [Math.round(x / gs) * gs, Math.round(y / gs) * gs];
+}
+
 Hooks.once('init', () => {
     libWrapper.register("kb-utils", "ClientDatabaseBackend.prototype._updateDocuments", CustomPreUpdateFunction, "MIXED");
     libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
     libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", customImageLoadFunction, "MIXED")
     libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED")
+    libWrapper.register("kb-utils", "SquareGrid.prototype._getNearestVertex", getVertexFunction, "OVERRIDE")
 })

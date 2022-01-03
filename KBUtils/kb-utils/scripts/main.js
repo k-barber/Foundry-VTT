@@ -10,10 +10,16 @@ function createOwnedItemFunction(target_ID, creation_data) {
     target.createOwnedItem(creation_data);
 }
 
+function updateActorFunction(target_ID, update_data) {
+    let target = game.actors.get(target_ID);
+    target.update(update_data);
+}
+
 Hooks.once("socketlib.ready", () => {
     Utility_Socket = socketlib.registerModule("kb-utils");
-    Utility_Socket.register("setFlag", setFlagFunction)
-    Utility_Socket.register("createOwnedItem", createOwnedItemFunction)
+    Utility_Socket.register("setFlag", setFlagFunction);
+    Utility_Socket.register("createOwnedItem", createOwnedItemFunction);
+    Utility_Socket.register("updateActor", updateActorFunction);
 });
 
 Hooks.on("renderChatMessage", (message, html, data) => {

@@ -2,11 +2,12 @@ let original_method = function () {
     if (this.entry) this.entry.sheet.render(true);
 }
 
-let permission_ints = {
+const permission_ints = {
     "NONE": 0,
     "LIMITED": 1,
     "OBSERVER": 2,
-    "OWNER": 3
+    "OWNER": 3,
+    "UNCHANGED": 4
 }
 
 Hooks.on("closeNoteConfig", function (Note, form) {
@@ -18,8 +19,8 @@ Hooks.on("closeNoteConfig", function (Note, form) {
         pickupPermission: DN_values[3].value,
         updatedPermission: DN_values[4].value
     }
-    console.log(config);
-    Note.object.setFlag("discoverable-notes", "config", config);
+
+    if (Note.object.id) Note.object.setFlag("discoverable-notes", "config", config);
 });
 
 Hooks.on("renderNoteConfig", function (data, html) {
@@ -74,6 +75,7 @@ Hooks.on("renderNoteConfig", function (data, html) {
                 <option value="LIMITED">Limited</option>
                 <option value="OBSERVER">Observer</option>
                 <option value="OWNER">Owner</option>
+                <option value="UNCHANGED">Unchanged</option>
             </select>
         </div>
     </div>`
@@ -177,10 +179,10 @@ Hooks.once('init', () => {
         }
     });
 
-    libWrapper.register("discoverable-notes", "Note.prototype.refresh", function (wrapped, event) {
-        //this.position.set(this.data.x, this.data.y);
-        //this.controlIcon.border.visible = this._hover;
-        //this.tooltip.visible = this._hover;
+    libWrapper.register("discoverable-notes", "Note.prototype.refresh", function (event) {
+        this.position.set(this.data.x, this.data.y);
+        this.controlIcon.border.visible = this._hover;
+        this.tooltip.visible = this._hover;
 
         if (this.entry) {
             var config;
@@ -194,13 +196,11 @@ Hooks.once('init', () => {
                 this.visible = this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
             }
         } else {
-            this.visible = true;
+            return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
         }
+    }, "OVERRIDE");
 
-        return wrapped(event);
-    }, "MIXED");
-
-    libWrapper.register("discoverable-notes", "Note.prototype._canView", function (wrapped, event) {
+    libWrapper.register("discoverable-notes", "Note.prototype._canView", function (event) {
         if (this.entry) {
             var config;
             if (hasProperty((this.data), "flags.discoverable-notes") &&
@@ -213,8 +213,24 @@ Hooks.once('init', () => {
                 return this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
             }
         } else {
-            return wrapped(event);
+            return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
         }
+    }, "OVERRIDE");
+
+    libWrapper.register("discoverable-notes", "NoteConfig.prototype._updateObject", async function (wrapped, event, formData) {
+        if (this.object.id) return wrapped(event, formData);
+        formData.flags = {
+            "discoverable-notes": {
+                "config": {
+                    overwriteDefaults: formData.DN_overwriteDefaults || false,
+                    interactionDistance: formData.DN_interactionDistance || game.settings.get("discoverable-notes", "InteractionDistance"),
+                    partyPickup: formData.DN_partyPickup || game.settings.get("discoverable-notes", "PartyPickup"),
+                    pickupPermission: formData.DN_pickupPermission || game.settings.get("discoverable-notes", "PickupPermission"),
+                    updatedPermission: formData.DN_updatedPermission || permission_ints[game.settings.get("discoverable-notes", "UpdatedPermission")]
+                }
+            }
+        }
+        return wrapped(event, formData)
     }, "MIXED");
 
     libWrapper.register("discoverable-notes", "Note.prototype._onClickLeft2", function (wrapped, event) {
@@ -258,30 +274,33 @@ Hooks.once('init', () => {
             var permissions = duplicate(entry.data.permission);
 
             //Check if the user/party already have updated permissions
-            if (partyPickup && permissions.default < updatedPermission) {
-                var gmID = getGMId();
-                if (gmID === null) {
-                    ui.notifications.warn("No active GM.");
-                    return false;
+            if (updatedPermission != permission_ints["UNCHANGED"]) {
+                if (partyPickup && permissions.default < updatedPermission) {
+                    var gmID = getGMId();
+                    if (gmID === null) {
+                        ui.notifications.warn("No active GM.");
+                        return false;
+                    }
+                    permissions.default = updatedPermission;
+                    game.socket.emit("module.discoverable-notes", {
+                        entry: this.entry.id,
+                        permissions: permissions,
+                        gmID: gmID
+                    });
+                } else if (!partyPickup && ((permissions[game.userId] < updatedPermission) ||
+                        (typeof (permissions[game.userId]) == "undefined") && permissions.default < updatedPermission)) {
+                    var gmID = getGMId();
+                    if (gmID === null) {
+                        ui.notifications.warn("No active GM.");
+                        return false;
+                    }
+                    permissions[game.userId] = updatedPermission;
+                    game.socket.emit("module.discoverable-notes", {
+                        entry: this.entry.id,
+                        permissions: permissions,
+                        gmID: gmID
+                    });
                 }
-                permissions.default = updatedPermission;
-                game.socket.emit("module.discoverable-notes", {
-                    entry: this.entry.id,
-                    permissions: permissions,
-                    gmID: gmID
-                });
-            } else if (!partyPickup && ((permissions[game.userId] < updatedPermission) || (typeof (permissions[game.userId]) == "undefined"))) {
-                var gmID = getGMId();
-                if (gmID === null) {
-                    ui.notifications.warn("No active GM.");
-                    return false;
-                }
-                permissions[game.userId] = updatedPermission;
-                game.socket.emit("module.discoverable-notes", {
-                    entry: this.entry.id,
-                    permissions: permissions,
-                    gmID: gmID
-                });
             }
         }
         return wrapped(event);

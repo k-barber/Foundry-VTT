@@ -30,10 +30,10 @@ Hooks.once("init", () => {
         default: "NONE",
         type: String,
         choices: {
-            "NONE": "none",
-            "LIMITED": "limited",
-            "OBSERVER": "observer",
-            "OWNER": "owner"
+            "NONE": "None",
+            "LIMITED": "Limited",
+            "OBSERVER": "Observer",
+            "OWNER": "Owner",
         },
         onChange: function () {
             if (canvas.notes._active) {
@@ -52,10 +52,11 @@ Hooks.once("init", () => {
         default: "OBSERVER",
         type: String,
         choices: {
-            "NONE": "none",
-            "LIMITED": "limited",
-            "OBSERVER": "observer",
-            "OWNER": "owner"
+            "NONE": "None",
+            "LIMITED": "Limited",
+            "OBSERVER": "Observer",
+            "OWNER": "Owner",
+            "UNCHANGED": "Unchanged"
         }
     });
 });

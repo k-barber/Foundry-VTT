@@ -121,7 +121,11 @@ async function CustomPreUpdateFunction(wrapped, documentClass, things, user) {
 
                     var input = ""
                     for (const [denomination, value] of Object.entries(differences)) {
-                        input += denomination + " x " + Math.abs(value) + ",";
+                        if (input) {
+                            input += `, ${Math.abs(value)} × ${denomination}`
+                        } else {
+                            input += `${Math.abs(value)} × ${denomination}`
+                        }
                     }
                     input.slice(0, -1);
 

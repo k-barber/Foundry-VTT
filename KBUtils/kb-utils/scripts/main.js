@@ -7,7 +7,7 @@ function setFlagFunction(data, key, value) {
 
 function createOwnedItemFunction(target_ID, creation_data) {
     let target = game.actors.get(target_ID);
-    target.createOwnedItem(creation_data);
+    target.createEmbeddedDocuments("Item", creation_data);
 }
 
 function updateActorFunction(target_ID, update_data) {
@@ -168,7 +168,7 @@ async function CustomPreCreationFunction(wrapped, event, data) {
     if (!(sameActor)) {
         if (data.actorId) {
             const source = game.actors.get(data.actorId);
-            source.deleteOwnedItem(data.data._id)
+            source.deleteEmbeddedDocuments("Item", data.data._id)
         }
     }
 }

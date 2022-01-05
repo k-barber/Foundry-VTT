@@ -3,7 +3,7 @@
     "title": "KB Utils",
     "description": "Utility Things",
     "author": "K-barber",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "minimumCoreVersion": "0.9.9",
     "scripts": [
         "./scripts/settings.js",

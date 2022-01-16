@@ -1,7 +1,3 @@
-let original_method = function () {
-    if (this.entry) this.entry.sheet.render(true);
-}
-
 const permission_ints = {
     "NONE": 0,
     "LIMITED": 1,
@@ -187,33 +183,26 @@ Hooks.once('init', () => {
             return true;
         }
 
-        if (this.entry) {
-            var config;
-            if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
-                // Has edited properties
-                this.visible = this.entry.testUserPermission(game.user, this?.data?.flags["discoverable-notes"]?.config?.pickupPermission);
-            } else {
-                // Use module defaults
-                this.visible = this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
-            }
+        if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
+            // Has edited properties
+            this.visible = this.entry.testUserPermission(game.user, this?.data?.flags["discoverable-notes"]?.config?.pickupPermission);
         } else {
-            return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
+            // Use module defaults
+            this.visible = this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
         }
+
     }, "OVERRIDE");
 
     libWrapper.register("discoverable-notes", "Note.prototype._canView", function (event) {
-        if (this.entry) {
-            var config;
-            if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
-                // Has edited properties
-                return this.entry.testUserPermission(game.user, config.pickupPermission);
-            } else {
-                // Use module defaults
-                return this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
-            }
+
+        if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
+            // Has edited properties
+            return this.entry.testUserPermission(game.user, config.pickupPermission);
         } else {
-            return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
+            // Use module defaults
+            return this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
         }
+
     }, "OVERRIDE");
 
     libWrapper.register("discoverable-notes", "NoteConfig.prototype._updateObject", async function (wrapped, event, formData) {

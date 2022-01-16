@@ -197,7 +197,7 @@ Hooks.once('init', () => {
 
         if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
             // Has edited properties
-            return this.entry.testUserPermission(game.user, config.pickupPermission);
+            return this.entry.testUserPermission(game.user, this?.data?.flags["discoverable-notes"]?.config.pickupPermission);
         } else {
             // Use module defaults
             return this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
@@ -223,14 +223,13 @@ Hooks.once('init', () => {
 
     libWrapper.register("discoverable-notes", "Note.prototype._onClickLeft2", function (wrapped, event) {
         if (!game.user.isGM) {
-            var config;
-
             var interactionDistance = 0;
             var updatedPermission = 2;
             var partyPickup = true;
 
             // Set variables
             if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
+                var config = this?.data?.flags["discoverable-notes"]?.config;
                 interactionDistance = config.interactionDistance;
                 updatedPermission = permission_ints[config.updatedPermission];
                 partyPickup = config.partyPickup;

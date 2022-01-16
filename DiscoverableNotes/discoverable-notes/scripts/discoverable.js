@@ -82,11 +82,9 @@ Hooks.on("renderNoteConfig", function (data, html) {
     html.find(".form-group").last().after(content);
     var note = data.object;
     var input = (name) => $(`input[name="${name}"]`)[0];
-    var config;
-    if (hasProperty((note.data), "flags.discoverable-notes") &&
-        (config = note.getFlag('discoverable-notes', 'config')) &&
-        config.overwriteDefaults == true) {
+    if (note.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
         // Has edited properties
+        var config = note.data?.flags["discoverable-notes"]?.config;
         input("DN_overwriteDefaults").checked = config.overwriteDefaults;
         input("DN_interactionDistance").setAttribute("value", config.interactionDistance);
         input("DN_partyPickup").checked = config.partyPickup;
@@ -184,16 +182,19 @@ Hooks.once('init', () => {
         this.controlIcon.border.visible = this._hover;
         this.tooltip.visible = this._hover;
 
+        if (game.user.isGM) {
+            this.visible = true;
+            return true;
+        }
+
         if (this.entry) {
             var config;
-            if (hasProperty((this.data), "flags.discoverable-notes") &&
-                (config = this.getFlag('discoverable-notes', 'config')) &&
-                config.overwriteDefaults == true) {
+            if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
                 // Has edited properties
-                this.visible = this.entry.hasPerm(game.user, config.pickupPermission);
+                this.visible = this.entry.testUserPermission(game.user, this?.data?.flags["discoverable-notes"]?.config?.pickupPermission);
             } else {
                 // Use module defaults
-                this.visible = this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
+                this.visible = this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
             }
         } else {
             return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
@@ -203,14 +204,12 @@ Hooks.once('init', () => {
     libWrapper.register("discoverable-notes", "Note.prototype._canView", function (event) {
         if (this.entry) {
             var config;
-            if (hasProperty((this.data), "flags.discoverable-notes") &&
-                (config = this.getFlag('discoverable-notes', 'config')) &&
-                config.overwriteDefaults == true) {
+            if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
                 // Has edited properties
-                return this.entry.hasPerm(game.user, config.pickupPermission);
+                return this.entry.testUserPermission(game.user, config.pickupPermission);
             } else {
                 // Use module defaults
-                return this.entry.hasPerm(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
+                return this.entry.testUserPermission(game.user, game.settings.get("discoverable-notes", "PickupPermission"));
             }
         } else {
             return this.entry?.testUserPermission(game.user, "LIMITED") ?? false;
@@ -242,9 +241,7 @@ Hooks.once('init', () => {
             var partyPickup = true;
 
             // Set variables
-            if (hasProperty((this.data), "flags.discoverable-notes") &&
-                (config = this.getFlag('discoverable-notes', 'config')) &&
-                config.overwriteDefaults == true) {
+            if (this?.data?.flags["discoverable-notes"]?.config?.overwriteDefaults == true) {
                 interactionDistance = config.interactionDistance;
                 updatedPermission = permission_ints[config.updatedPermission];
                 partyPickup = config.partyPickup;

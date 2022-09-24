@@ -49,118 +49,6 @@ function MessageHandler(message, html, data) {
     }
 }
 
-async function CustomPreUpdateFunction(wrapped, documentClass, things, user) {
-    if (documentClass.name === "Actor5e") {
-        const collection = things.pack ? game.packs.get(things.pack) : game.collections.get(documentClass.documentName);
-        const toUpdate = await this._preUpdateDocumentArray(collection, things);
-
-        var target = game.actors.get(things.updates[0]._id)
-
-        var good_update = true;
-        const updateData = toUpdate[0]?.data;
-
-        if (updateData) {
-            if (!(game.user.isGM) && target.data?.type === "npc" && Object.keys(updateData).includes("currency")) {
-                let original_container_values = duplicate(target.data.data.currency);
-
-                function inner() {
-                    let new_container_values = updateData.currency;
-                    var differences = {};
-                    let denomination = ""
-                    let keys = Object.keys(new_container_values);
-                    for (let i = 0; i < keys.length; i++) {
-                        denomination = keys[i];
-                        if (isNaN(Number.parseInt(new_container_values[denomination].value))) {
-                            ui.notifications.error("THAT'S NOT A NUMBER!!");
-                            ChatMessage.create({
-                                speaker: {
-                                    alias: "System"
-                                },
-                                content: "<p>" + game.user.charname + " doesn't know what a number is!</p><p>POINT AT THEM AND LAUGH!</p>"
-                            });
-                            return false;
-                        }
-                        if (typeof (new_container_values[denomination].value) === "string" && (new_container_values[denomination].value.startsWith("+") || new_container_values[denomination].value.startsWith("-"))) {
-                            new_container_values[denomination].value = Number.parseInt(original_container_values[denomination].value || 0) + Number.parseInt(new_container_values[denomination].value)
-                        }
-                        if (new_container_values[denomination].value < 0) {
-                            ui.notifications.error("You can't have negative money...");
-                            return false;
-                        }
-                        differences[denomination] = new_container_values[denomination].value - original_container_values[denomination].value;
-                        things.updates[0]["data.currency." + denomination + ".value"] = new_container_values[denomination].value;
-                    }
-
-                    var character = game.user.character;
-                    var original_character_values = duplicate(character.data.data.currency);
-                    var new_character_values = {};
-                    var enough = true;
-
-                    denomination = ""
-                    keys = Object.keys(differences);
-                    for (let i = 0; i < keys.length; i++) {
-                        denomination = keys[i];
-                        if (differences[denomination] > 0 && differences[denomination] > original_character_values[denomination]) {
-                            enough = false;
-                            break;
-                        } else if (differences[denomination] < 0 && Math.abs(differences[denomination]) > original_container_values[denomination]) {
-                            enough = false;
-                            break;
-                        }
-                        new_character_values[denomination] = (original_character_values[denomination] - differences[denomination]);
-                    }
-
-                    if (!(enough)) {
-                        ui.notifications.error("You don't have that much money...");
-                        return false;
-                    }
-                    character.update({
-                        data: {
-                            currency: new_character_values
-                        }
-                    });
-
-                    var input = ""
-                    for (const [denomination, value] of Object.entries(differences)) {
-                        if (input) {
-                            input += `, ${Math.abs(value)} × ${denomination}`
-                        } else {
-                            input += `${Math.abs(value)} × ${denomination}`
-                        }
-                    }
-                    input.slice(0, -1);
-
-                    if (differences[denomination] < 0) {
-                        ChatMessage.create({
-                            speaker: {
-                                alias: target.data.name
-                            },
-                            content: character.name + " took " + input + " from " + target.data.name
-                        });
-                    } else if (differences[denomination] > 0) {
-                        ChatMessage.create({
-                            speaker: {
-                                alias: target.data.name
-                            },
-                            content: character.name + " put " + input + " into " + target.data.name
-                        });
-                    }
-                    return true;
-                }
-                good_update = inner()
-                if (!good_update) {
-                    things.updates[0].data = {
-                        currency: original_container_values
-                    }
-                    things.options.diff = false;
-                }
-            }
-        }
-    }
-    return wrapped(documentClass, things, user);
-}
-
-
 async function CustomPreCreationFunction(wrapped, event, data) {
     await wrapped(event, data)
 
@@ -176,7 +64,7 @@ async function CustomPreCreationFunction(wrapped, event, data) {
 
 function new_url(src) {
     var new_url = src
-    if (new_url && new_url.includes("https://foundry-vtt-kb.s3.us-east-2.amazonaws.com")) {
+    if (new_url && new_url.includes("https://foundry-vtt-kb.s3.us-east-2.amazonaws.com") && !new_url.includes("/Maps/")) {
         if (new_url.includes("?")) {
             new_url += "&kb_utils"
         } else {
@@ -186,29 +74,60 @@ function new_url(src) {
     return new_url
 }
 
-function customImageLoadFunction(wrapped, src) {
-    return wrapped(new_url(src))
-}
-
-function customCacheFunction(wrapped, src) {
-    var val = this.cache.get(new_url(src));
-    if (!val) {
-        val = this.cache.get(src)
-    };
-    if (!val) return undefined;
-    val.time = Date.now();
-    return val?.tex;
-}
-
 function getVertexFunction(x, y) {
     const gs = canvas.dimensions.size * 0.5;
     return [Math.round(x / gs) * gs, Math.round(y / gs) * gs];
 }
 
+function tokenClickRange(wrapped, event) {
+    if (!game.user.isGM) {
+        var interactionDistance = 1;
+        if (game.modules.get("arms-reach")) {
+            interactionDistance = game.settings.get("arms-reach", "globalInteractionDistance");
+            var controlled = canvas.tokens.controlled;
+            if (controlled.length == 0) controlled = canvas.tokens.ownedTokens;
+            if (!controlled) {
+                ui.notifications.error("No character selected");
+                return false;
+            }
+        }
+
+        let dist = getManhattanBetween(this, getTokenCenter(controlled[0]));
+        let gridSize = canvas.dimensions.size;
+
+        if ((interactionDistance != 0) && ((dist / gridSize) > interactionDistance)) {
+            ui.notifications.error("Token not within reach");
+            return false;
+        }
+    }
+    return wrapped(event);
+}
+
 Hooks.once('init', () => {
-    libWrapper.register("kb-utils", "ClientDatabaseBackend.prototype._updateDocuments", CustomPreUpdateFunction, "MIXED");
     libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
-    libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", customImageLoadFunction, "MIXED")
-    libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED")
-    libWrapper.register("kb-utils", "SquareGrid.prototype._getNearestVertex", getVertexFunction, "OVERRIDE")
+    libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", function(wrapped, url){
+        return wrapped(new_url(url));
+    }, "MIXED");
+    // libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED");
+    libWrapper.register("kb-utils", "SquareGrid.prototype._getNearestVertex", getVertexFunction, "OVERRIDE");
+    libWrapper.register("kb-utils", "Token.prototype._onClickLeft2", tokenClickRange, "MIXED");
 })
+
+Hooks.on("renderSceneControls", (controls, b, c) => {
+    x = $("li[data-tooltip='CONTROLS.NoteToggle'] i");
+    x.removeClass("fa-map-pin");
+
+    x.addClass("fa-thumbtack");
+    x.addClass("fa-sharp");
+
+    x = $("a[data-tooltip='DOCUMENT.Items'] i");
+    x.removeClass("fas");
+    x.removeClass("fa-suitcase");
+    x.addClass("fa-sharp");
+    x.addClass("fa-solid");
+    x.addClass("fa-box-open-full");
+
+    x = $("a[data-tooltip='DOCUMENT.Scenes'] i");
+    x.removeClass("fa-map");
+    x.addClass("fa-location-dot");
+});

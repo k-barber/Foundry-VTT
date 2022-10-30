@@ -35,8 +35,8 @@ Hooks.on("renderActorSheet", (actor, html, data) => {
 });
 
 function MessageHandler(message, html, data) {
-    console.log(message.data)
-    let speaker = (message.data.speaker?.alias || message.data.speaker?.actor || message.user)
+    console.log(message)
+    let speaker = (message.speaker?.alias || message.speaker?.actor || message.user)
     if (speaker && typeof (speaker) == "string") {
         speaker = speaker.replace(/\W/g, "_");
         html[0].classList.add(speaker + "_Message");
@@ -47,6 +47,24 @@ function MessageHandler(message, html, data) {
     border-radius: 2px; background-blend-mode: luminosity; flex: 0 0 36px; margin-right: 5px;"></div>`);
         }
     }
+
+    var timestamp;
+    if (message.flags["kb-utils"]){
+        timestamp = message?.flags["kb-utils"]?.gametime;
+    } else {
+        timestamp = SimpleCalendar.api.timestamp();
+        if (game.user.isGM){
+            message.setFlag("kb-utils", "gametime", timestamp)
+        }
+    }
+    var meta_data = html.find(".message-metadata")[0];
+    var date = SimpleCalendar.api.timestampToDate(timestamp);
+    var datestamp = date.display.time + " " + date.display.date;
+    var span = document.createElement("span");
+    span.className = "message-gametime";
+    span.title = datestamp;
+    span.textContent = `${gameTimeSince(timestamp)} | `;
+    meta_data.prepend(span);
 }
 
 async function CustomPreCreationFunction(wrapped, event, data) {
@@ -103,6 +121,44 @@ function tokenClickRange(wrapped, event) {
     return wrapped(event);
 }
 
+/**
+   * Express a timestamp as a relative string
+   * @param {Date|string} timeStamp   A timestamp string or Date object to be formatted as a relative time
+   * @return {string}                 A string expression for the relative time
+   */
+ function gameTimeSince(timeStamp) {
+    const now = SimpleCalendar.api.timestamp();
+    const current_cal = SimpleCalendar.api.getCurrentCalendar();
+    const secondsInMinute = current_cal.time.secondsInMinute;
+    const minutesInHour = current_cal.time.minutesInHour;
+    const hoursInDay = current_cal.time.hoursInDay
+    const secondsInHour = secondsInMinute * minutesInHour;
+    const secondsInDay = secondsInMinute * minutesInHour * hoursInDay;
+    
+    const secondsPast = (now - timeStamp) ;
+    let since = "";
+
+    // Format the time
+    if (secondsPast < secondsInMinute) {
+      since = Math.abs(secondsPast);
+      if ( since < 1 ) return game.i18n.localize("TIME.Now");
+      else since = Math.round(since) + game.i18n.localize("TIME.SecondsAbbreviation");
+    }
+    else if (secondsPast < secondsInHour) since = Math.round(secondsPast / secondsInMinute) + game.i18n.localize("TIME.MinutesAbbreviation");
+    else if (secondsPast <= secondsInDay) since = Math.round(secondsPast / secondsInHour) + game.i18n.localize("TIME.HoursAbbreviation");
+    else {
+      const hours = Math.round(secondsPast / secondsInHour);
+      const days = Math.floor(hours / hoursInDay);
+      since = `${days}${game.i18n.localize("TIME.DaysAbbreviation")} ${hours % hoursInDay}${game.i18n.localize("TIME.HoursAbbreviation")}`;
+    }
+
+    if (now > timeStamp){
+        return game.i18n.format("TIME.Since", {since: since});
+    } else {
+        return game.i18n.format("In {since}", {since: since});
+    }
+  }
+
 Hooks.once('init', () => {
     libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
     libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", function(wrapped, url){
@@ -111,6 +167,20 @@ Hooks.once('init', () => {
     // libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED");
     libWrapper.register("kb-utils", "SquareGrid.prototype._getNearestVertex", getVertexFunction, "OVERRIDE");
     libWrapper.register("kb-utils", "Token.prototype._onClickLeft2", tokenClickRange, "MIXED");
+    if (game.user.isGM){
+        libWrapper.register("kb-utils", "ChatLog.prototype.updateTimestamps", function(wrapped, ...args){
+            console.log("Updating Stamps!");
+            console.log(args);
+            const messages = this.element.find("#chat-log .message");
+            for ( let li of messages ) {
+                const message = game.messages.get(li.dataset.messageId);
+                if ( !message?.flags["kb-utils"] ) return;
+                const stamp = li.querySelector(".message-gametime");
+                stamp.textContent = gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
+            }
+            wrapped(...args);
+        }, "MIXED");
+    }
 })
 
 Hooks.on("renderSceneControls", (controls, b, c) => {

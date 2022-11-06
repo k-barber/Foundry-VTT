@@ -1,4 +1,4 @@
-var Utility_Socket
+var Utility_Socket;
 
 function setFlagFunction(data, key, value) {
     let object = game.actors.get(data._id);
@@ -49,11 +49,11 @@ function MessageHandler(message, html, data) {
     }
 
     var timestamp;
-    if (message.flags["kb-utils"]){
+    if (message?.flags["kb-utils"]) {
         timestamp = message?.flags["kb-utils"]?.gametime;
     } else {
         timestamp = SimpleCalendar.api.timestamp();
-        if (game.user.isGM){
+        if (game?.user?.isGM) {
             message.setFlag("kb-utils", "gametime", timestamp)
         }
     }
@@ -122,11 +122,11 @@ function tokenClickRange(wrapped, event) {
 }
 
 /**
-   * Express a timestamp as a relative string
-   * @param {Date|string} timeStamp   A timestamp string or Date object to be formatted as a relative time
-   * @return {string}                 A string expression for the relative time
-   */
- function gameTimeSince(timeStamp) {
+ * Express a timestamp as a relative string
+ * @param {Date|string} timeStamp   A timestamp string or Date object to be formatted as a relative time
+ * @return {string}                 A string expression for the relative time
+ */
+function gameTimeSince(timeStamp) {
     const now = SimpleCalendar.api.timestamp();
     const current_cal = SimpleCalendar.api.getCurrentCalendar();
     const secondsInMinute = current_cal.time.secondsInMinute;
@@ -134,53 +134,52 @@ function tokenClickRange(wrapped, event) {
     const hoursInDay = current_cal.time.hoursInDay
     const secondsInHour = secondsInMinute * minutesInHour;
     const secondsInDay = secondsInMinute * minutesInHour * hoursInDay;
-    
-    const secondsPast = (now - timeStamp) ;
+
+    const secondsPast = (now - timeStamp);
     let since = "";
 
     // Format the time
     if (secondsPast < secondsInMinute) {
-      since = Math.abs(secondsPast);
-      if ( since < 1 ) return game.i18n.localize("TIME.Now");
-      else since = Math.round(since) + game.i18n.localize("TIME.SecondsAbbreviation");
-    }
-    else if (secondsPast < secondsInHour) since = Math.round(secondsPast / secondsInMinute) + game.i18n.localize("TIME.MinutesAbbreviation");
+        since = Math.abs(secondsPast);
+        if (since < 1) return game.i18n.localize("TIME.Now");
+        else since = Math.round(since) + game.i18n.localize("TIME.SecondsAbbreviation");
+    } else if (secondsPast < secondsInHour) since = Math.round(secondsPast / secondsInMinute) + game.i18n.localize("TIME.MinutesAbbreviation");
     else if (secondsPast <= secondsInDay) since = Math.round(secondsPast / secondsInHour) + game.i18n.localize("TIME.HoursAbbreviation");
     else {
-      const hours = Math.round(secondsPast / secondsInHour);
-      const days = Math.floor(hours / hoursInDay);
-      since = `${days}${game.i18n.localize("TIME.DaysAbbreviation")} ${hours % hoursInDay}${game.i18n.localize("TIME.HoursAbbreviation")}`;
+        const hours = Math.round(secondsPast / secondsInHour);
+        const days = Math.floor(hours / hoursInDay);
+        since = `${days}${game.i18n.localize("TIME.DaysAbbreviation")} ${hours % hoursInDay}${game.i18n.localize("TIME.HoursAbbreviation")}`;
     }
 
-    if (now > timeStamp){
-        return game.i18n.format("TIME.Since", {since: since});
+    if (now > timeStamp) {
+        return game.i18n.format("TIME.Since", {
+            since: since
+        });
     } else {
-        return game.i18n.format("In {since}", {since: since});
+        return game.i18n.format("In {since}", {
+            since: since
+        });
     }
-  }
+}
 
 Hooks.once('init', () => {
     libWrapper.register("kb-utils", "ActorSheet.prototype._onDropItem", CustomPreCreationFunction, "MIXED");
-    libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", function(wrapped, url){
+    libWrapper.register("kb-utils", "TextureLoader.prototype.loadImageTexture", function (wrapped, url) {
         return wrapped(new_url(url));
     }, "MIXED");
     // libWrapper.register("kb-utils", "TextureLoader.prototype.getCache", customCacheFunction, "MIXED");
     libWrapper.register("kb-utils", "SquareGrid.prototype._getNearestVertex", getVertexFunction, "OVERRIDE");
     libWrapper.register("kb-utils", "Token.prototype._onClickLeft2", tokenClickRange, "MIXED");
-    if (game.user.isGM){
-        libWrapper.register("kb-utils", "ChatLog.prototype.updateTimestamps", function(wrapped, ...args){
-            console.log("Updating Stamps!");
-            console.log(args);
-            const messages = this.element.find("#chat-log .message");
-            for ( let li of messages ) {
-                const message = game.messages.get(li.dataset.messageId);
-                if ( !message?.flags["kb-utils"] ) return;
-                const stamp = li.querySelector(".message-gametime");
-                stamp.textContent = gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
-            }
-            wrapped(...args);
-        }, "MIXED");
-    }
+    libWrapper.register("kb-utils", "ChatLog.prototype.updateTimestamps", function (wrapped, ...args) {
+        const messages = this.element.find("#chat-log .message");
+        for (let li of messages) {
+            const message = game.messages.get(li.dataset.messageId);
+            if (!message?.flags["kb-utils"]) return;
+            const stamp = li.querySelector(".message-gametime");
+            stamp.textContent = gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
+        }
+        wrapped(...args);
+    }, "MIXED");
 })
 
 Hooks.on("renderSceneControls", (controls, b, c) => {

@@ -16,11 +16,16 @@ function updateActorFunction(target_ID, update_data) {
     target.update(update_data);
 }
 
+function updateActorDirectFunction(target, update_data) {
+    target.update(update_data);
+}
+
 Hooks.once("socketlib.ready", () => {
     Utility_Socket = socketlib.registerModule("kb-utils");
     Utility_Socket.register("setFlag", setFlagFunction);
     Utility_Socket.register("createOwnedItem", createOwnedItemFunction);
     Utility_Socket.register("updateActor", updateActorFunction);
+    Utility_Socket.register("updateActorDirect", updateActorDirectFunction);
 });
 
 Hooks.on("renderChatMessage", (message, html, data) => {
@@ -35,7 +40,6 @@ Hooks.on("renderActorSheet", (actor, html, data) => {
 });
 
 function MessageHandler(message, html, data) {
-    console.log(message)
     let speaker = (message.speaker?.alias || message.speaker?.actor || message.user)
     if (speaker && typeof (speaker) == "string") {
         speaker = speaker.replace(/\W/g, "_");
@@ -187,12 +191,11 @@ Hooks.on("renderSceneControls", (controls, b, c) => {
     x.removeClass("fa-map-pin");
 
     x.addClass("fa-thumbtack");
-    x.addClass("fa-sharp");
 
     x = $("a[data-tooltip='DOCUMENT.Items'] i");
     x.removeClass("fas");
     x.removeClass("fa-suitcase");
-    x.addClass("fa-sharp");
+
     x.addClass("fa-solid");
     x.addClass("fa-box-open-full");
 

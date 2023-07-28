@@ -11,42 +11,20 @@ function createOwnedItemFunction(target_ID, creation_data) {
     target.createEmbeddedDocuments("Item", creation_data);
 }
 
-function updateActorFunction(target, update_data) {
-    var actor;
-    if (typeof target === "object"){
-        var documentName;
-        if (target.documentName){
-            documentName = target.documentName;
-        } else if (target.document) {
-            documentName = target.document.documentName;
-        } else {
-            ui.notifications.error("Could not find document in: " + target);
-            return
-        }
-        switch (documentName) {
-            case "Actor":
-                actor = game.actors.get(target.id);
-                break;
-            case "Token":
-                actor = canvas.tokens.get(target.id).document.actor;
-                break;
-            default:
-                break;
-        }
-    } else if (typeof target === "string"){
-        actor = game.actors.get(target_ID);
+function updateDocumentFunction(target_uuid, update_data) {
+    var target = fromUuidSync(target_uuid);
+    if (target.update && typeof target.update === "function") {
+        target.update(update_data);
     } else {
-        ui.notifications.error("Could not find actor: " + target);
-        return;
+        ui.notifications.error("Could not find update function");
     }
-    return actor.update(update_data);
 }
 
 Hooks.once("socketlib.ready", () => {
     Utility_Socket = socketlib.registerModule("kb-utils");
     Utility_Socket.register("setFlag", setFlagFunction);
     Utility_Socket.register("createOwnedItem", createOwnedItemFunction);
-    Utility_Socket.register("updateActor", updateActorFunction);
+    Utility_Socket.register("updateDocument", updateDocumentFunction);
 });
 
 Hooks.on("renderChatMessage", (message, html, data) => {

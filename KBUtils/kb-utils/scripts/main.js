@@ -113,7 +113,14 @@ function tokenClickRange(wrapped, event) {
             }
         }
 
-        let dist = getManhattanBetween(this, getTokenCenter(controlled[0]));
+        const x1 = this.center.x;
+        const y1 = this.center.y;
+
+        const x2 = controlled[0].center.x;
+        const y2 = controlled[0].center.y;
+
+        var dist = Math.abs(x1 - x2) + Math.abs(y1 - y2);
+
         let gridSize = canvas.dimensions.size;
 
         if ((interactionDistance != 0) && ((dist / gridSize) > interactionDistance)) {

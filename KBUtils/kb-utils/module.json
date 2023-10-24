@@ -3,7 +3,7 @@
     "title": "KB Utils",
     "description": "Utility Things",
     "author": "K-barber",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "minimumCoreVersion": "9",
     "scripts": [
         "./scripts/settings.js",
@@ -13,7 +13,7 @@
     "styles": [
         "./styles/bootstrap-icons.css"
     ],
-    "compatibleCoreVersion": "10",
+    "compatibleCoreVersion": "11",
     "url": "https://github.com/k-barber/Foundry-VTT/tree/main/KBUtils/kb-utils",
     "manifest": "https://raw.githubusercontent.com/k-barber/Foundry-VTT/main/KBUtils/kb-utils/module.json",
     "download": "https://github.com/k-barber/Foundry-VTT/raw/main/KBUtils/kb-utils.zip",

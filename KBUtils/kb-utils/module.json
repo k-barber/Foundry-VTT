@@ -1,26 +1,39 @@
 {
   "id": "kb-utils",
   "title": "KB Utils",
-  "description": "Utility Things",
-  "author": "K-barber",
   "version": "1.0.0",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
   },
-  "scripts": ["./scripts/settings.js", "./scripts/main.js"],
-  "socket": true,
-  "url": "https://github.com/k-barber/Foundry-VTT/tree/main/KBUtils/kb-utils",
-  "manifest": "https://raw.githubusercontent.com/k-barber/Foundry-VTT/main/KBUtils/kb-utils/module.json",
-  "download": "https://github.com/k-barber/Foundry-VTT/raw/main/KBUtils/kb-utils.zip",
-  "dependencies": [
+  "authors": [
     {
-      "name": "lib-wrapper",
-      "manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
-    },
-    {
-      "name": "seasons-stars",
-      "manifest": "https://github.com/rayners/fvtt-seasons-and-stars/releases/latest/download/module.json"
+      "name": "Kris Barber",
+      "url": "https://github.com/k-barber",
+      "flags": {}
     }
-  ]
+  ],
+  "url": "https://github.com/k-barber/Foundry-VTT/tree/main/KBUtils",
+  "flags": {
+    "canUpload": true
+  },
+  "socket": true,
+  "download": "https://github.com/k-barber/Foundry-VTT/raw/main/KBUtils/kb-utils.zip",
+  "manifest": "https://raw.githubusercontent.com/k-barber/Foundry-VTT/main/KBUtils/kb-utils/module.json",
+  "scripts": ["./scripts/main.js"],
+  "relationships": {
+    "requires": [
+      {
+        "id": "socketlib",
+        "type": "module",
+        "compatibility": {}
+      },
+      {
+        "id": "seasons-and-stars",
+        "type": "module",
+        "compatibility": {}
+      }
+    ]
+  },
+  "description": ""
 }

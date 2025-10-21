@@ -2,16 +2,18 @@ Hooks.on("renderChatMessage", (message, html, data) => {
   MessageHandler(message, html, data);
 });
 
-// Hooks.on("seasons-stars:dateChanged", (data) => {
-//   const messages = this.element.find("#chat-log .message");
-//   for (let li of messages) {
-//     const message = game.messages.get(li.dataset.messageId);
-//     if (!message?.flags["kb-utils"]) return;
-//     const stamp = li.querySelector(".message-gametime");
-//     stamp.textContent =
-//       gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
-//   }
-// });
+Hooks.on("seasons-stars:dateChanged", (data) => {
+  for (const li of document.querySelectorAll(
+    ".chat-message[data-message-id]"
+  )) {
+    const message = game.messages.get(li.dataset.messageId);
+    if (!message?.flags["kb-utils"]) return;
+    const stamp = li.querySelector(".message-gametime");
+    if (stamp)
+      stamp.textContent =
+        gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
+  }
+});
 
 function MessageHandler(message, html, data) {
   var timestamp;
@@ -90,22 +92,3 @@ function gameTimeSince(timeStamp) {
     });
   }
 }
-
-Hooks.once("init", () => {
-  libWrapper.register(
-    "kb-utils",
-    "ChatLog.prototype.updateTimestamps",
-    function (wrapped, ...args) {
-      const messages = this.element.find("#chat-log .message");
-      for (let li of messages) {
-        const message = game.messages.get(li.dataset.messageId);
-        if (!message?.flags["kb-utils"]) return;
-        const stamp = li.querySelector(".message-gametime");
-        stamp.textContent =
-          gameTimeSince(message?.flags["kb-utils"]?.gametime) + " | ";
-      }
-      wrapped(...args);
-    },
-    "MIXED"
-  );
-});

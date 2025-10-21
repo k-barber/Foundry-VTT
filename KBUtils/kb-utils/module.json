@@ -1,7 +1,7 @@
 {
   "id": "kb-utils",
   "title": "KB Utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -35,5 +35,5 @@
       }
     ]
   },
-  "description": ""
+  "description": "A simple module that adds in-game time to chat messages. Users can see 2 timestamps, one for IRL time and one for in-game time."
 }
